@@ -31,7 +31,7 @@ pip install -r requirements.txt
 
 Export your token so the script can access private models:
 
-Alternatively, you can **edit `run.sh`** and replace:
+**Edit `run.sh`** and replace:
 
 ```bash
 --hf_token <YOUR HUGGINGFACE TOKEN>
