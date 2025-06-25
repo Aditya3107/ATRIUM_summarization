@@ -1,0 +1,16 @@
+# Ignore virtual environments and cache
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pkl
+*.log
+*.tmp
+.cache/
+cache/
+
+# Ignore personal or system configs
+.env
+.git/
+.gitignore
+.DS_Store

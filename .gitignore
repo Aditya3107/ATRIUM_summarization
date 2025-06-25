@@ -1,0 +1,20 @@
+# Ignore Python cache files
+__pycache__/
+*.py[cod]
+
+# Ignore all files inside venv and cache folders
+venv/*
+cache/*
+
+# Keep the empty folders
+!venv/.gitkeep
+!cache/.gitkeep
+
+# Ignore Hugging Face transformers cache and other model-related files (if any)
+*.safetensors
+*.bin
+*.pt
+
+# Ignore system files
+.DS_Store
+.env
