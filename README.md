@@ -1,3 +1,76 @@
+# ATRIUM Summarization
+
+This project summarizes long interview transcripts using the DeepSeek LLaMA model (`deepseek-ai/DeepSeek-R1-Distill-Llama-8B`).
+
+---
+
+## Quick Start
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/Aditya3107/ATRIUM_summarization.git
+cd ATRIUM_summarization
+```
+
+---
+
+### 2. Set up the Python environment
+
+We recommend using a virtual environment:
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+---
+
+### 3. Add your Hugging Face token
+
+Export your token so the script can access private models:
+
+Alternatively, you can **edit `run.sh`** and replace:
+
+```bash
+--hf_token <YOUR HUGGINGFACE TOKEN>
+```
+
+with your actual token.
+
+---
+
+### 4. Prepare the input
+
+Place your `.srt` or speaker-labeled `.txt` transcript file into the `inputs/` folder.
+
+Example:
+
+```bash
+inputs/sample_interview.txt
+```
+
+---
+
+### 5. Run the summarizer
+
+```bash
+bash run.sh
+```
+
+---
+
+## 📁 Output
+
+Summaries will be saved in the `generate_summary/` folder with the following filename format:
+
+```text
+sample_interview.summary.txt
+```
+
+---
+
 # Summarizer GPU Docker Image
 
 This Docker image wraps a Python-based summarization pipeline using the [DeepSeek LLaMA model](https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Llama-8B) and is optimized for GPU usage.
