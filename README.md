@@ -86,6 +86,15 @@ This Docker image wraps a Python-based summarization pipeline using the [DeepSee
 
 ---
 
+You can use our pre-built image hosted on Docker Hub:
+
+### 🔹 Pull and Run
+
+```bash
+docker pull aditya3107/atrium-summarizer:latest
+```
+
+
 ##  How to Run the Container
 
 ```bash
