@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools >= 62.6"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "atrium-summarizer"
+description = "This project summarizes long interview transcripts using the DeepSeek LLaMA model "
+version = "0.1"
+dynamic = ["dependencies"]
+authors = [
+    {name = "Aditya Parikhh", email = "aditya.parikh@ru.nl"}
+]
+maintainers = [
+    {name = "Aditya Parikhh", email = "aditya.parikh@ru.nl"}
+]
+readme = "README.md"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+]
+requires-python = ">= 3.7"
+
+[project.urls]
+Repository = "https://github.com/Aditya3107/ATRIUM_summarization.git"
+
+[project.scripts]
+atrium-summarize = "atrium_summarize:main"
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
