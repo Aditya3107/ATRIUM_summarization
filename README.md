@@ -104,12 +104,12 @@ docker run --rm \
   -v $(pwd)/inputs:/app/inputs \
   -v $(pwd)/cache:/app/cache \
   summarizer-gpu \
-  --srt_file /app/inputs/sample_data2.txt \
-  --intro_prompt "Jonathan Carker interviewing Cheryl Jones on 30th September at Grand Union's magnificent Bothy." \
-  --model_name deepseek-ai/DeepSeek-R1-Distill-Llama-8B \
-  --summary_words 1000 \
-  --use_gpu yes \
-  --device_id 0 \
-  --cache_dir /app/cache \
-  --hf_token $HF_TOKEN
+  --srt-file /app/inputs/sample_data2.txt \
+  --intro-prompt "Jonathan Carker interviewing Cheryl Jones on 30th September at Grand Union's magnificent Bothy." \
+  --model-name deepseek-ai/DeepSeek-R1-Distill-Llama-8B \
+  --summary-words 1000 \
+  --use-gpu yes \
+  --device-id 0 \
+  --cache-dir /app/cache \
+  --hf-token $HF_TOKEN
 
