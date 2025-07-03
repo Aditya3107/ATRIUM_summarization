@@ -19,7 +19,7 @@ classifiers = [
     "Intended Audience :: Developers",
 ]
 license = "GPL-3.0-or-later"
-requires-python = ">= 3.7"
+requires-python = ">= 3.9"
 
 [project.urls]
 Repository = "https://github.com/Aditya3107/ATRIUM_summarization.git"
