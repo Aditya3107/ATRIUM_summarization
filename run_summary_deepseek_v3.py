@@ -225,7 +225,7 @@ def summarize_interview(args):
 
     # Save output
     input_path = Path(args.srt_file)
-    output_dir = Path("/app/generate_summary")
+    output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     filename_no_ext = input_path.stem
     output_path = output_dir / f"{filename_no_ext}.summary.txt"
@@ -249,6 +249,7 @@ def main():
     parser.add_argument("--use_gpu", type=str, default="yes", choices=["yes", "no"], help="Use GPU if available (default: yes)")
     parser.add_argument("--device_id", type=str, default="0", help="CUDA device IDs (e.g., '4,5' or '4')")
     parser.add_argument("--cache_dir", type=str, default=None, help="Directory to cache model weights (default: Hugging Face default)")
+    parser.add_argument("--output_dir", type=str, default=".", help="Made output dir configurable (default=.)")
     parser.add_argument("--hf_token", type=str, default=None, help="Hugging Face API token for private models")
     args = parser.parse_args()
 
