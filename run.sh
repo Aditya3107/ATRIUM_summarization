@@ -1,12 +1,27 @@
 #!/bin/sh
+
+# Usage: inputfile intro-prompt
+
 export CUDA_VISIBLE_DEVICES=0
 
-python3 run_summary_deepseek_v3.py \
+[ -n "$CACHE_DIR" ] || CACHE_DIR=cache
+[ -n "$INPUT_DIR" ] || INPUT_DIR=inputs
+[ -n "$OUTPUT_DIR" ] || OUTPUT_DIR=output
+
+if [ -z "$1" ]; then
+    echo "Syntax: run.sh inputfilename intro-prompt">&2
+    echo "  Pass input file name as first parameter">&2
+    exit 1
+fi
+
+
+summarize-interviews \
     --model-name deepseek-ai/DeepSeek-R1-Distill-Llama-8B \
-    --srt-file "/home/aparikh/summary/inputs/sample_interview.txt" \
+    --srt-file "$INPUT_DIR/$1" \
     --summary-words 1000 \
-    --intro-prompt "Jonathan Carker interviewing Cheryl Jones on 30th September at Grand Union's magnificent Bothy." \
+    --intro-prompt "$2" \
     --use-gpu yes \
     --device-id 0 \
-    --cache-dir "/home/aparikh/summary/cache" \
-    --hf-token <YOUR HUGGINGFACE TOKEN>
+    --cache-dir "$CACHE_DIR" \
+    --output-dir "$OUTPUT_DIR" \
+    --hf-token "$HF_TOKEN"
