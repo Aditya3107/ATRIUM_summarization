@@ -22,7 +22,7 @@ We recommend using a virtual environment:
 ```bash
 python3 -m venv venv
 source venv/bin/activate
-pip install -r requirements.txt
+pip install .
 ```
 
 ---
@@ -55,15 +55,17 @@ inputs/sample_interview.txt
 
 ### 5. Run the summarizer
 
+Run the summarizer on one of the files in inputs, specify only the filename and (optionally) an intro prompt:
+
 ```bash
-bash run.sh
+./run.sh sample_interview.txt "Jonathan Carker interviewing Cheryl Jones on 30th September at Grand Union's magnificent Bothy."
 ```
 
 ---
 
 ## 📁 Output
 
-Summaries will be saved in the `generate_summary/` folder with the following filename format:
+Summaries will be saved in the `output/` folder with the extension `summary.txt`, for example:
 
 ```text
 sample_interview.summary.txt
@@ -102,14 +104,15 @@ docker run --rm \
   --gpus all \
   -e HF_TOKEN=your_actual_token_here \
   -v $(pwd)/inputs:/app/inputs \
+  -v $(pwd)/output:/app/output \
   -v $(pwd)/cache:/app/cache \
   summarizer-gpu \
-  --srt_file /app/inputs/sample_data2.txt \
-  --intro_prompt "Jonathan Carker interviewing Cheryl Jones on 30th September at Grand Union's magnificent Bothy." \
-  --model_name deepseek-ai/DeepSeek-R1-Distill-Llama-8B \
-  --summary_words 1000 \
-  --use_gpu yes \
-  --device_id 0 \
-  --cache_dir /app/cache \
-  --hf_token $HF_TOKEN
+  --srt-file /app/inputs/sample_data2.txt \
+  --intro-prompt "Jonathan Carker interviewing Cheryl Jones on 30th September at Grand Union's magnificent Bothy." \
+  --model-name deepseek-ai/DeepSeek-R1-Distill-Llama-8B \
+  --summary-words 1000 \
+  --use-gpu yes \
+  --device-id 0 \
+  --cache-dir /app/cache \
+  --hf-token $HF_TOKEN
 

@@ -2,7 +2,7 @@
 Script: DeepSeek Interview Summarizer (SRT/TXT)
 -------------------------------------------------
 This script summarizes long interview transcripts using DeepSeek's DeepSeek-R1-Distill-Llama-8B model 
-hosted on Hugging Face. It automatically checks token count, tries full-text summarization, 
+as obtained from Hugging Face. It automatically checks token count, tries full-text summarization, 
 falls back to chunking if needed, and merges chunk summaries meaningfully.
 
 It supports:
@@ -13,19 +13,19 @@ It supports:
 ✅ GPU selection with 4-bit quantization (CUDA device index or CPU fallback)
 ✅ Meaningful consolidation of chunk summaries
 
-Dependencies:
-    pip install transformers accelerate srt tqdm bitsandbytes
+Installation (will obtain and install all dependencies), make sure to use a virtual environment:
+    pip install .
 
 How to Run:
-    python deepseek_interview_summarizer.py \
-        --model_name deepseek-ai/DeepSeek-R1-Distill-Llama-8B \
-        --srt_file path/to/transcript.txt \
-        --summary_words 500 \
-        --intro_prompt "Jonathan interviewing Cheryl Jones on 30th Sept at the Bothy." \
-        --use_gpu yes \
-        --device_id 4,5 \
-        --cache_dir "/vol/tensusers6/aparikh/ATRIUM/SUMMARY/cache" \
-        --hf_token your_huggingface_token
+     summarize-interviews \
+        --model-name deepseek-ai/DeepSeek-R1-Distill-Llama-8B \
+        --srt-file path/to/transcript.txt \
+        --summary-words 500 \
+        --intro-prompt "Jonathan interviewing Cheryl Jones on 30th Sept at the Bothy." \
+        --use-gpu yes \
+        --device-id 4,5 \
+        --cache-dir "/vol/tensusers6/aparikh/ATRIUM/SUMMARY/cache" \
+        --hf-token your_huggingface_token
 """
 
 import argparse
@@ -225,7 +225,7 @@ def summarize_interview(args):
 
     # Save output
     input_path = Path(args.srt_file)
-    output_dir = Path("/app/generate_summary")
+    output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     filename_no_ext = input_path.stem
     output_path = output_dir / f"{filename_no_ext}.summary.txt"
@@ -242,14 +242,15 @@ def summarize_interview(args):
 
 def main():
     parser = argparse.ArgumentParser(description="DeepSeek Interview Summarizer (SRT/TXT)")
-    parser.add_argument("--model_name", type=str, default="deepseek-ai/DeepSeek-R1-Distill-Llama-8B", help="Hugging Face model ID")
-    parser.add_argument("--srt_file", type=str, required=True, help="Path to input .srt or speaker-labeled .txt transcript")
-    parser.add_argument("--summary_words", type=int, default=150, help="Target word count per chunk summary")
-    parser.add_argument("--intro_prompt", type=str, required=True, help="Short context: interviewer, interviewee, date, topic, etc.")
-    parser.add_argument("--use_gpu", type=str, default="yes", choices=["yes", "no"], help="Use GPU if available (default: yes)")
-    parser.add_argument("--device_id", type=str, default="0", help="CUDA device IDs (e.g., '4,5' or '4')")
-    parser.add_argument("--cache_dir", type=str, default=None, help="Directory to cache model weights (default: Hugging Face default)")
-    parser.add_argument("--hf_token", type=str, default=None, help="Hugging Face API token for private models")
+    parser.add_argument("--model-name", type=str, default="deepseek-ai/DeepSeek-R1-Distill-Llama-8B", help="Hugging Face model ID")
+    parser.add_argument("--srt-file", type=str, required=True, help="Path to input .srt or speaker-labeled .txt transcript")
+    parser.add_argument("--summary-words", type=int, default=150, help="Target word count per chunk summary")
+    parser.add_argument("--intro-prompt", type=str, required=True, help="Short context: interviewer, interviewee, date, topic, etc.")
+    parser.add_argument("--use-gpu", type=str, default="yes", choices=["yes", "no"], help="Use GPU if available (default: yes)")
+    parser.add_argument("--device-id", type=str, default="0", help="CUDA device IDs (e.g., '4,5' or '4')")
+    parser.add_argument("--cache-dir", type=str, default=None, help="Directory to cache model weights (default: Hugging Face default)")
+    parser.add_argument("--output-dir", type=str, default="output", help="Directory to write output summaries (default=output)")
+    parser.add_argument("--hf-token", type=str, default=None, help="Hugging Face API token for private models")
     args = parser.parse_args()
 
     summarize_interview(args)

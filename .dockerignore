@@ -8,6 +8,7 @@ __pycache__/
 *.tmp
 .cache/
 cache/
+env/
 
 # Ignore personal or system configs
 .env
