@@ -8,10 +8,10 @@ description = "This project summarizes long interview transcripts using the Deep
 version = "0.1"
 dynamic = ["dependencies"]
 authors = [
-    {name = "Aditya Parikhh", email = "aditya.parikh@ru.nl"}
+    {name = "Aditya Parikh", email = "aditya.parikh@ru.nl"}
 ]
 maintainers = [
-    {name = "Aditya Parikhh", email = "aditya.parikh@ru.nl"}
+    {name = "Aditya Parikh", email = "aditya.parikh@ru.nl"}
 ]
 readme = "README.md"
 classifiers = [
