@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "atrium-summarize"
 description = "This project summarizes long interview transcripts using the DeepSeek LLaMA model "
-version = "0.1"
+version = "0.2"
 dynamic = ["dependencies"]
 authors = [
     {name = "Aditya Parikh", email = "aditya.parikh@ru.nl"}
