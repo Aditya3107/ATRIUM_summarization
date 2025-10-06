@@ -189,7 +189,7 @@ def summarize_interview(args):
     if raw_text_tokens <= token_threshold:
         print("Attempting full transcript summarization...")
         try:
-            summary = summarize_chunk(model, tokenizer, args.intro_prompt, raw_text, args.summary_words)
+            summary = summarize_chunk(model, tokenizer, args.intro_prompt, raw_text, args.summary_words_chunk)
             chunk_summaries.append(summary)
             chunks = [raw_text]  # Set to single chunk for consistency
         except Exception as e:
@@ -204,7 +204,7 @@ def summarize_interview(args):
     if not chunk_summaries:
         print(f"Processing {len(chunks)} chunks...")
         for i, chunk in enumerate(tqdm(chunks, desc="Summarizing chunks")):
-            summary = summarize_chunk(model, tokenizer, args.intro_prompt, chunk, args.summary_words)
+            summary = summarize_chunk(model, tokenizer, args.intro_prompt, chunk, args.summary_words_chunk)
             chunk_summaries.append(summary)
 
     # Final consolidation (optional)
@@ -215,7 +215,7 @@ def summarize_interview(args):
             model, tokenizer,
             "Consolidate these interview summaries:",
             final_summary,
-            args.summary_words * 2
+            args.summary_words
         )
 
     # Ensure final_summary has no content before </think>
@@ -244,7 +244,8 @@ def main():
     parser = argparse.ArgumentParser(description="DeepSeek Interview Summarizer (SRT/TXT)")
     parser.add_argument("--model-name", type=str, default="deepseek-ai/DeepSeek-R1-Distill-Llama-8B", help="Hugging Face model ID")
     parser.add_argument("--srt-file", type=str, required=True, help="Path to input .srt or speaker-labeled .txt transcript")
-    parser.add_argument("--summary-words", type=int, default=150, help="Target word count per chunk summary")
+    parser.add_argument("--summary-words-chunk", type=int, default=150, help="Target word count *per chunk*")
+    parser.add_argument("--summary-words", type=int, default=300, help="Target word count for the total summary")
     parser.add_argument("--intro-prompt", type=str, required=True, help="Short context: interviewer, interviewee, date, topic, etc.")
     parser.add_argument("--use-gpu", type=str, default="yes", choices=["yes", "no"], help="Use GPU if available (default: yes)")
     parser.add_argument("--device-id", type=str, default="0", help="CUDA device IDs (e.g., '4,5' or '4')")
