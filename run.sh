@@ -19,7 +19,6 @@ summarize-interviews \
     --model-name deepseek-ai/DeepSeek-R1-Distill-Llama-8B \
     --srt-file "$INPUT_DIR/$1" \
     --summary-words 1000 \
-    --intro-prompt "$2" \
     --use-gpu yes \
     --device-id 0 \
     --cache-dir "$CACHE_DIR" \

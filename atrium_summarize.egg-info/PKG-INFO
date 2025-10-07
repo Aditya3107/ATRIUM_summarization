@@ -1,3 +1,22 @@
+Metadata-Version: 2.4
+Name: atrium-summarize
+Version: 0.2
+Summary: This project summarizes long interview transcripts using the DeepSeek LLaMA model 
+Author-email: Aditya Parikh <aditya.parikh@ru.nl>
+Maintainer-email: Aditya Parikh <aditya.parikh@ru.nl>
+License-Expression: GPL-3.0-or-later
+Project-URL: Repository, https://github.com/Aditya3107/ATRIUM_summarization.git
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: srt==3.5.3
+Requires-Dist: torch==2.6.0
+Requires-Dist: tqdm==4.66.5
+Requires-Dist: accelerate>=0.33.0
+Requires-Dist: bitsandbytes>=0.43.3
+Requires-Dist: transformers==4.53.0
+
 # ATRIUM Summarization
 
 This project summarizes long interview transcripts using the DeepSeek LLaMA model (`deepseek-ai/DeepSeek-R1-Distill-Llama-8B`).
@@ -55,10 +74,10 @@ inputs/sample_interview.txt
 
 ### 5. Run the summarizer
 
-Run the summarizer on one of the files in inputs, specify only the filename:
+Run the summarizer on one of the files in inputs, specify only the filename and (optionally) an intro prompt:
 
 ```bash
-./run.sh sample_interview.txt
+./run.sh sample_interview.txt "Jonathan Carker interviewing Cheryl Jones on 30th September at Grand Union's magnificent Bothy."
 ```
 
 ---

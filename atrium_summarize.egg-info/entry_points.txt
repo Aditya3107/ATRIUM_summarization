@@ -1,0 +1,2 @@
+[console_scripts]
+summarize-interviews = atrium_summarize.summarize_interviews:main
