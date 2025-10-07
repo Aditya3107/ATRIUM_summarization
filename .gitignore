@@ -18,3 +18,5 @@ cache/*
 # Ignore system files
 .DS_Store
 .env
+/atrium_summarize.egg-info/
+*.egg-info/
