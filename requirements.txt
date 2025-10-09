@@ -1,7 +1,7 @@
-srt==3.5.3
-torch==2.6.0
-tqdm==4.66.5
-accelerate>=0.33.0
-bitsandbytes>=0.43.3
-transformers==4.53.0
 langid==1.1.6
+srt==3.5.3
+torch==2.8.0
+tqdm==4.67.1
+transformers==4.57.0
+bitsandbytes>=0.43.3
+accelerate>=0.33.0

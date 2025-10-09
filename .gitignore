@@ -5,6 +5,8 @@ __pycache__/
 # Ignore all files inside venv and cache folders
 venv/*
 cache/*
+atrium_summarize/output/*
+atrium_summarize/summarize_interviews_depricated.py
 
 # Keep the empty folders
 !venv/.gitkeep
