@@ -209,13 +209,13 @@ def build_messages(language_name: str, text: str, word_limit: int, mode: str = "
         f"LANGUAGE: {language_name}\n\n"
         f"{task_line}\n\n"
         f"TEXT:\n{text}\n\n"
-        "INSTRUCTIONS:\n"
-        "- If you need to reason or plan, do it step-by-step inside <think>...</think> tags.\n"
-        "- Output ONLY a bold title (using **text**) followed by one or two paragraphs, with NO <summary> or <think> tags.\n"
-        "- Write the summary ONLY in {language_name}.\n"
-        "- Keep the summary content (title and paragraphs) under {word_limit} words.\n"
-        "- Reasoning in <think> tags does not count toward the word limit.\n"
-        "- Ensure the output is complete and not truncated."
+        f"INSTRUCTIONS:\n"
+        f"- If you need to reason or plan, do it step-by-step inside <think>...</think> tags.\n"
+        f"- Output ONLY a bold title (using **text**) followed by one or two paragraphs, with NO <summary> or <think> tags.\n"
+        f"- Write the summary ONLY in {language_name}.\n"
+        f"- Keep the summary content (title and paragraphs) under {word_limit} words.\n"
+        f"- Reasoning in <think> tags does not count toward the word limit.\n"
+        f"- Ensure the output is complete and not truncated."
     )
     return [
         {"role": "system", "content": sys_msg},
@@ -229,6 +229,7 @@ def run_generation(model, tokenizer, messages, word_limit: int) -> str:
     # Estimate tokens needed: ~2 tokens per word + buffer for reasoning
     max_new_tokens = max(word_limit * 2 + 200, 1024)
     start = time.time()
+    summary = ""
     for attempt in range(2):  # Retry if output is truncated
         outputs = model.generate(
             **inputs,
