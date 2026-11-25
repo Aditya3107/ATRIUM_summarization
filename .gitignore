@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 
 # Ignore all files inside venv and cache folders
+env
 venv/*
 cache/*
 atrium_summarize/output/*

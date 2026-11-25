@@ -1,5 +1,5 @@
 # Use official NVIDIA CUDA base image for GPU support
-FROM nvidia/cuda:12.3.2-base-ubuntu22.04
+FROM nvidia/cuda:12.9.2-base-ubuntu24.04
 
 # Create python alias (optional, if your script uses `python`)
 RUN ln -s /usr/bin/python3 /usr/bin/python
