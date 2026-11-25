@@ -407,7 +407,7 @@ def client_handler(conn):
                 try:
                     filename, output_dir, force_language,token_threshold, summary_words, summary_words_chunk = str(data,'utf-8').strip().split("\t")
                 except:
-                    conn.sendall(b"ERROR: Expected tab-separated fields: filename, output_file, force_language, token_threshold, summary_words, summary_words_chunk\n")
+                    conn.sendall(b"ERROR: Expected tab-separated fields: filename, output_dir, force_language, token_threshold, summary_words, summary_words_chunk\n")
                     continue
                 try:
                     conn.sendall(b"Processing " + os.path.basename(filename).encode('utf-8') + b" ...\n")
