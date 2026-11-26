@@ -321,7 +321,7 @@ class SumService:
         )
 
 
-    def summarize_interview(self, input_file: str, output_dir: str, force_language: Optional[str], token_threshold: int, summary_words: int, summary_words_chunk: int):
+    def summarize_interview(self, input_file: str, output_dir: str, force_language: Optional[str], token_threshold: int, summary_words: int, summary_words_chunk: int) -> bool:
         # Read input
         input_path = Path(input_file)
         if input_path.suffix.lower() == ".srt":
@@ -384,6 +384,7 @@ class SumService:
             f.write(final_summary)
 
         print(f"Summary saved to {out_path}", file=sys.stderr)
+        return True
 
 
 # ----------------------------
