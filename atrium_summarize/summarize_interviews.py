@@ -15,7 +15,7 @@ Supports:
 ✅ Summarization of chunks and consolidation into a final summary
 ✅ Handles .srt files (via srt package) and plain .txt transcripts
 ✅ Configurable word limits for chunk and final summaries
-
+✅ Server-mode for use by [sumservice](https://github.com/proycon/sumservice)
 
 
 Install (in a venv):
@@ -33,10 +33,16 @@ Usage:
         --hf-token <your_hf_token> \
         --output-dir output
 """
+import sys
 import argparse
 import os
 import time
 import re
+import socket
+import threading
+import traceback
+import signal
+from typing import Optional
 from pathlib import Path
 
 import torch
@@ -171,19 +177,19 @@ def extract_summary_from_text(text: str, word_limit: int) -> str:
         return ""
     # Normalize line endings
     text = text.replace("\r", "")
-    
+
     # Remove everything before and including the last </think>
     matches = list(_DANGLING_THINK_CLOSE_RE.finditer(text))
     if matches:
         text = text[matches[-1].end():]
-    
+
     # Remove any remaining <think>...</think> blocks
     text = _THINK_RE.sub("", text).strip()
-    
+
     # Extract content between <summary>...</summary>, or use full text if absent
     m = _SUMMARY_RE.search(text)
     summary = m.group(1).strip() if m else text
-    
+
     # Trim to word limit while preserving sentences
     summary = trim_to_word_limit(summary, word_limit)
     return summary
@@ -266,134 +272,174 @@ def consolidate_summaries(model, tokenizer, language_name: str, text: str, word_
 # Main pipeline
 # ----------------------------
 
-def summarize_interview(args):
-    # Device selection (respect --device-id)
-    use_gpu = (args.use_gpu.lower() == "yes") and torch.cuda.is_available()
-    gpu_info = f"GPU available: {torch.cuda.is_available()} | Using GPU: {use_gpu}"
-    print(gpu_info)
+class SumService:
 
-    # Quantization on GPU only
-    bnb_config = None
-    if use_gpu:
-        supports_bf16 = torch.cuda.is_bf16_supported()
-        compute_dtype = torch.bfloat16 if supports_bf16 else torch.float16
-        bnb_config = BitsAndBytesConfig(
-            load_in_4bit=True,
-            bnb_4bit_compute_dtype=compute_dtype,
-            bnb_4bit_use_double_quant=True,
-            bnb_4bit_quant_type="nf4",
+    def __init__(self, args):
+        use_gpu = (args.use_gpu.lower() == "yes") and torch.cuda.is_available()
+        gpu_info = f"GPU available: {torch.cuda.is_available()} | Using GPU: {use_gpu}"
+        print(gpu_info, file=sys.stderr)
+
+        # Quantization on GPU only
+        bnb_config = None
+        if use_gpu:
+            supports_bf16 = torch.cuda.is_bf16_supported()
+            compute_dtype = torch.bfloat16 if supports_bf16 else torch.float16
+            bnb_config = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_compute_dtype=compute_dtype,
+                bnb_4bit_use_double_quant=True,
+                bnb_4bit_quant_type="nf4",
+            )
+
+        # Resolve device_map based on --device-id visibility
+        visible = os.environ.get("CUDA_VISIBLE_DEVICES", "")
+        multi = ("," in visible)
+        device_map = "auto" if (use_gpu and multi) else ({"": 0} if use_gpu else None)
+
+        print(f"CUDA_VISIBLE_DEVICES: {visible or '<not set>'}", file=sys.stderr)
+        print(f"device_map: {device_map}", file=sys.stderr)
+
+        # Load model/tokenizer
+        print("Loading model/tokenizer...", file=sys.stderr)
+        self.model = AutoModelForCausalLM.from_pretrained(
+            args.model_name,
+            device_map=device_map,
+            quantization_config=bnb_config,
+            dtype=torch.float16 if use_gpu else None,
+            token=args.hf_token,
+            cache_dir=args.cache_dir,
+            trust_remote_code=True,
+        )
+        self.model.config.use_cache = True
+        self.model.config.pretraining_tp = 1
+
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            args.model_name,
+            token=args.hf_token,
+            cache_dir=args.cache_dir,
+            trust_remote_code=True,
         )
 
-    # Resolve device_map based on --device-id visibility
-    visible = os.environ.get("CUDA_VISIBLE_DEVICES", "")
-    multi = ("," in visible)
-    device_map = "auto" if (use_gpu and multi) else ({"": 0} if use_gpu else None)
 
-    print(f"CUDA_VISIBLE_DEVICES: {visible or '<not set>'}")
-    print(f"device_map: {device_map}")
+    def summarize_interview(self, input_file: str, output_dir: str, force_language: Optional[str], token_threshold: int, summary_words: int, summary_words_chunk: int) -> bool:
+        # Read input
+        input_path = Path(input_file)
+        if input_path.suffix.lower() == ".srt":
+            raw_text = load_srt_text(str(input_path))
+        else:
+            raw_text = load_txt(str(input_path))
 
-    # Load model/tokenizer
-    print("Loading model/tokenizer...")
-    model = AutoModelForCausalLM.from_pretrained(
-        args.model_name,
-        device_map=device_map,
-        quantization_config=bnb_config,
-        dtype=torch.float16 if use_gpu else None,
-        token=args.hf_token,
-        cache_dir=args.cache_dir,
-        trust_remote_code=True,
-    )
-    model.config.use_cache = True
-    model.config.pretraining_tp = 1
+        # Detect transcript language once (or override)
+        language_name = force_language if force_language else detect_language_name(raw_text)
+        print(f"Detected/forced language: {language_name}")
 
-    tokenizer = AutoTokenizer.from_pretrained(
-        args.model_name,
-        token=args.hf_token,
-        cache_dir=args.cache_dir,
-        trust_remote_code=True,
-    )
+        # Token counts for decision
+        raw_tokens = len(self.tokenizer.tokenize(raw_text))
+        print(f"Raw transcript token count: {raw_tokens}")
 
-    # Read input
-    input_path = Path(args.srt_file)
-    if input_path.suffix.lower() == ".srt":
-        raw_text = load_srt_text(str(input_path))
-    else:
-        raw_text = load_txt(str(input_path))
+        # Chunking parameters
+        max_ctx_tokens = 3072
+        reserved_for_generation = 512
+        token_threshold = token_threshold
 
-    # Detect transcript language once (or override)
-    language_name = args.force_language.strip() or detect_language_name(raw_text)
-    print(f"Detected/forced language: {language_name}")
+        chunks, chunk_summaries = [], []
 
-    # Token counts for decision
-    raw_tokens = len(tokenizer.tokenize(raw_text))
-    print(f"Raw transcript token count: {raw_tokens}")
+        # Try full transcript path
+        if raw_tokens <= token_threshold:
+            print("Attempting full transcript summarization...", file=sys.stderr)
+            try:
+                summary = summarize_transcript(self.model, self.tokenizer, language_name, raw_text, summary_words)
+                chunk_summaries.append(summary)
+                chunks = [raw_text]
+            except Exception as e:
+                print(f"Full summarization failed: {e}\nFalling back to chunking...", file=sys.stderr)
+                chunks = split_into_chunks(raw_text, self.tokenizer, max_ctx_tokens - reserved_for_generation)
+        else:
+            print(f"Transcript exceeds {token_threshold} tokens. Proceeding with chunking...", file=sys.stderr)
+            chunks = split_into_chunks(raw_text, self.tokenizer, max_ctx_tokens - reserved_for_generation)
 
-    # Chunking parameters
-    max_ctx_tokens = 3072
-    reserved_for_generation = 512
-    token_threshold = args.token_threshold
+        # Summarize chunks if needed
+        if not chunk_summaries:
+            print(f"Processing {len(chunks)} chunks...", file=sys.stderr)
+            for ch in tqdm(chunks, desc="Summarizing chunks"):
+                s = summarize_transcript(self.model, self.tokenizer, language_name, ch, summary_words_chunk)
+                chunk_summaries.append(s)
 
-    chunks, chunk_summaries = [], []
+        # Consolidate if multiple chunks
+        final_summary = "\n\n".join(chunk_summaries)
+        if len(chunk_summaries) > 1:
+            print("Consolidating chunk summaries...", file=sys.stderr)
+            final_summary = consolidate_summaries(self.model, self.tokenizer, language_name, final_summary, summary_words)
 
-    # Try full transcript path
-    if raw_tokens <= token_threshold:
-        print("Attempting full transcript summarization...")
-        try:
-            summary = summarize_transcript(model, tokenizer, language_name, raw_text, args.summary_words)
-            chunk_summaries.append(summary)
-            chunks = [raw_text]
-        except Exception as e:
-            print(f"Full summarization failed: {e}\nFalling back to chunking...")
-            chunks = split_into_chunks(raw_text, tokenizer, max_ctx_tokens - reserved_for_generation)
-    else:
-        print(f"Transcript exceeds {token_threshold} tokens. Proceeding with chunking...")
-        chunks = split_into_chunks(raw_text, tokenizer, max_ctx_tokens - reserved_for_generation)
+        # Final clean-up and word limit enforcement
+        final_summary = extract_summary_from_text(final_summary, summary_words)
+        word_count = count_words(final_summary)
+        print(f"Final summary word count: {word_count}", file=sys.stderr)
 
-    # Summarize chunks if needed
-    if not chunk_summaries:
-        print(f"Processing {len(chunks)} chunks...")
-        for ch in tqdm(chunks, desc="Summarizing chunks"):
-            s = summarize_transcript(model, tokenizer, language_name, ch, args.summary_words_chunk)
-            chunk_summaries.append(s)
+        # Save
+        output_dir_path: Path = Path(output_dir)
+        output_dir_path.mkdir(parents=True, exist_ok=True)
+        out_path = output_dir_path / f"{input_path.stem}.summary.txt"
+        with open(out_path, "w", encoding="utf-8") as f:
+            f.write(final_summary)
 
-    # Consolidate if multiple chunks
-    final_summary = "\n\n".join(chunk_summaries)
-    if len(chunk_summaries) > 1:
-        print("Consolidating chunk summaries...")
-        final_summary = consolidate_summaries(model, tokenizer, language_name, final_summary, args.summary_words)
+        print(f"Summary saved to {out_path}", file=sys.stderr)
+        return True
 
-    # Final clean-up and word limit enforcement
-    final_summary = extract_summary_from_text(final_summary, args.summary_words)
-    word_count = count_words(final_summary)
-    print(f"Final summary word count: {word_count}")
 
-    # Save
-    output_dir = Path(args.output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-    out_path = output_dir / f"{input_path.stem}.summary.txt"
-    with open(out_path, "w", encoding="utf-8") as f:
-        f.write(final_summary)
+# ----------------------------
+# Server
+# ----------------------------
 
-    print(f"Summary saved to {out_path}")
+def shutdown(signalnum, _):
+    global terminate
+    print(f"Shutting down, received signal {signalnum}", file=sys.stderr)
+    terminate.set()
 
-    # Free memory
-    del model
-    del tokenizer
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
-    print("Cleared model/tokenizer from memory.")
-
+def client_handler(conn):
+    """Handle incoming client connections"""
+    conn.settimeout(2)
+    try:
+        with conn:
+            while not terminate.is_set():
+                data = conn.recv(1024)
+                if not data:
+                    break
+                try:
+                    filename, output_dir, force_language,token_threshold, summary_words, summary_words_chunk = str(data,'utf-8').strip().split("\t")
+                except:
+                    conn.sendall(b"ERROR: Expected tab-separated fields: filename, output_dir, force_language, token_threshold, summary_words, summary_words_chunk\n")
+                    continue
+                try:
+                    conn.sendall(b"Processing " + os.path.basename(filename).encode('utf-8') + b" ...\n")
+                    if force_language in ("","-","null","False","None"):
+                        force_language = None
+                    if service.summarize_interview(filename, output_dir, force_language, int(token_threshold), int(summary_words), int(summary_words_chunk)):
+                        conn.sendall(b"Finished " + os.path.basename(filename).encode('utf-8') + b"\n")
+                    else:
+                        conn.sendall(b"ERROR: Invalid file or file not found\n")
+                except Exception as e:
+                    traceback.print_exc()
+                    conn.sendall(f"ERROR: {e}".encode('utf-8') + b"\n")
+                #important, send EOF and close connection, client may only send one instruction per connection
+                conn.shutdown(socket.SHUT_RDWR)
+                conn.close()
+                return
+    except OSError as e:
+        print(f"Client connection ended: {e}", file=sys.stderr)
 
 # ----------------------------
 # CLI
 # ----------------------------
 
 def main():
+    global service, terminate
+
     parser = argparse.ArgumentParser(description="DeepSeek Interview Summarizer (SRT/TXT)")
     parser.add_argument("--model-name", type=str,
                         default="deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
                         help="Hugging Face model ID")
-    parser.add_argument("--srt-file", type=str, required=True,
+    parser.add_argument("--srt-file", type=str,
                         help="Path to input .srt or speaker-labeled .txt transcript")
     parser.add_argument("--summary-words", type=int, default=500,
                         help="Target word count for the final (consolidated) summary")
@@ -413,6 +459,8 @@ def main():
                         help="Hugging Face token (if needed for gated/private models)")
     parser.add_argument("--force-language", type=str, default="",
                         help="Override detected language with a human-readable name (e.g., 'Spanish', 'Dutch').")
+    parser.add_argument("--server", type=int,
+                        help="Run as a server on the selected port")
     args = parser.parse_args()
 
     # Validate word limits
@@ -424,7 +472,45 @@ def main():
         os.environ["CUDA_VISIBLE_DEVICES"] = args.device_id
         print(f"Set CUDA_VISIBLE_DEVICES={args.device_id}")
 
-    summarize_interview(args)
+    # Catch signals, we must be able to terminate gracefully on request
+    signal.signal(signal.SIGINT, shutdown)
+    signal.signal(signal.SIGTERM, shutdown)
+
+    service = SumService(args)
+
+    if args.srt_file:
+        service.summarize_interview(args.srt_file, args.output_dir, args.force_language, args.token_threshold, args.summary_words, args.summary_words_chunk)
+    elif args.server:
+        port= int(args.server)
+        print("READY",file=sys.stderr);
+
+        terminate = threading.Event()
+
+        # Start the server, allow multiple clients
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
+            server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            server.bind(("127.0.0.1", int(port)))
+            server.listen()
+            server.settimeout(0.5) #timeout needed so we can catch signals and shutdown if needed
+
+            threads = []
+
+            while not terminate.is_set():
+                try:
+                    conn, _ = server.accept()
+                except socket.timeout:
+                    continue
+                except OSError:
+                    break
+
+                thread = threading.Thread(target=client_handler, args=(conn,))
+                thread.start()
+                threads.append(thread)
+
+            for thread in threads:
+                thread.join(timeout=4)
+    else:
+        raise ValueError("Provide --srt-file or set --server")
 
 
 if __name__ == "__main__":
